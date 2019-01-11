@@ -56,7 +56,6 @@ func (f *fizzyinput) Key() int {
 }
 func (FizzGenerator) Do(c chan <- maps.Keyed) {
 	for i:=0; i< 10000; i++ {
-		//fmt.Println("sending", i)
 		c <- &fizzyinput{i}
 	}
 }

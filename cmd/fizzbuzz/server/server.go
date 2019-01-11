@@ -11,13 +11,13 @@ import (
 	"github.com/wizgrao/blow/cmd/fizzbuzz"
 )
 
-type handle int
+type wasmHandler int
 
-var hand handle
+var wasm wasmHandler
 
-type echo int
+type newConnectionHandler int
 
-var ech echo
+var nch newConnectionHandler
 var upgrader = websocket.Upgrader{}
 
 var pool *maps.WorkerPool
@@ -38,10 +38,10 @@ func (g *gorillaWrapper) Send(b []byte) error {
 	return g.c.WriteMessage(websocket.TextMessage, b)
 }
 
-func (echo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (newConnectionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err !=nil {
-		fmt.Println("oop")
+		fmt.Println("Error upgrading http", err)
 		return
 	}
 	connection := &gorillaWrapper{c}
@@ -50,7 +50,7 @@ func (echo) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	select {}
 }
 
-func (h handle) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h wasmHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/wasm")
 	fmt.Println("wasm")
 	f, _ := os.Open("slave/main.wasm")
@@ -72,8 +72,8 @@ func main() {
 		maps.GeneratorSource(generator, pool).MapDispatch(fizzmapper).MapLocalParallel(&maps.PrintMapper{}, 10).Sink()
 	}()
 	fmt.Println("asdf")
-	http.Handle("/main.wasm", hand)
-	http.Handle("/sock", ech)
+	http.Handle("/main.wasm", wasm)
+	http.Handle("/sock", nch)
 	http.Handle("/", http.FileServer(http.Dir("slave/")))
 	fmt.Print(http.ListenAndServe(":8090", nil))
 }
