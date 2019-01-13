@@ -4,6 +4,7 @@ import (
 	"time"
 	"strconv"
 	"github.com/wizgrao/blow/maps"
+	"encoding/json"
 )
 
 type fizzBuzz struct{
@@ -44,6 +45,14 @@ func (f *fizzBuzz) Key() int {
 	return f.Number
 }
 
+func (f FizzMapper) InEncoder() maps.Encoder {
+	return &FizzyInputMarshaller{}
+}
+func (f FizzMapper) OutEncoder() maps.Encoder {
+	return &FizzBuzzMarshaller{}
+}
+
+
 type FizzGenerator int
 
 
@@ -62,10 +71,29 @@ func (FizzGenerator) Do(c chan <- maps.Keyed) {
 func (FizzMapper) ID() string{
 	return "fizzymapper"
 }
-func (FizzMapper) NewIn() maps.Keyed {
-	return &fizzyinput{}
+type FizzyInputMarshaller struct {
+
 }
 
-func (FizzMapper) NewOut() maps.Keyed {
-	return &fizzBuzz{}
+func (*FizzyInputMarshaller) Marshal(k maps.Keyed) ([]byte, error) {
+	return json.Marshal(k)
 }
+func (*FizzyInputMarshaller) UnMarshal(b []byte) (maps.Keyed, error) {
+	o := &fizzyinput{}
+	err := json.Unmarshal(b, o)
+	return o, err
+}
+
+type FizzBuzzMarshaller struct {
+
+}
+
+func (*FizzBuzzMarshaller) Marshal(k maps.Keyed) ([]byte, error) {
+	return json.Marshal(k)
+}
+func (*FizzBuzzMarshaller) UnMarshal(b []byte) (maps.Keyed, error) {
+	o := &fizzBuzz{}
+	err := json.Unmarshal(b, o)
+	return o, err
+}
+

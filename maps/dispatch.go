@@ -2,8 +2,8 @@ package maps
 
 import (
 	"sync"
-	"encoding/json"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 )
 
 
@@ -11,6 +11,11 @@ const (
 	moreData int = iota
 	done
 )
+
+type Encoder interface {
+	Marshal(Keyed) ([]byte, error)
+	UnMarshal([]byte) (Keyed, error)
+}
 
 type Connection interface {
 	Send([]byte) error
@@ -26,9 +31,13 @@ type Worker struct {
 func (w *Worker) doCommand(m NetworkMapper, d Keyed, k chan<- Keyed) error{
 	w.Lock()
 	defer w.Unlock()
-	a, err := json.Marshal(&command{
-		ID: m.ID(),
-		Data: d,
+	dat, err := m.InEncoder().Marshal(d)
+	if err != nil {
+		return err
+	}
+	a, err := proto.Marshal(&Command{
+		CommandId: m.ID(),
+		Data: dat,
 	})
 	if err != nil {
 		return err
@@ -42,17 +51,19 @@ func (w *Worker) doCommand(m NetworkMapper, d Keyed, k chan<- Keyed) error{
 		if err != nil {
 			return err
 		}
-		o := &response{
-			Data: m.NewOut(),
-		}
-		err = json.Unmarshal(data, o)
+		o := &Response{}
+		err = proto.Unmarshal(data, o)
 		if err != nil {
 			return err
 		}
-		if o.ResponseCode == done {
+		if o.Response == Response_DONE {
 			return nil
 		}
-		k <- o.Data
+		result, err := m.OutEncoder().UnMarshal(o.Data)
+		if err != nil {
+			return err
+		}
+		k <- result
 	}
 }
 
@@ -136,14 +147,14 @@ func (w *WorkerPool) AddWorker(c Connection) {
 		if err != nil {
 			return
 		}
-		begin := &beginMessage{}
-		err = json.Unmarshal(dat, begin)
+		begin := &Begin{}
+		err = proto.Unmarshal(dat, begin)
 		if err != nil {
 			return
 		}
 		worker := &Worker{
 			connection: c,
-			maps:       begin.Maps,
+			maps:       begin.Id,
 		}
 		w.RLock()
 		for _, mapstr := range worker.maps {
@@ -209,24 +220,7 @@ func (a *actionPool) removeWorker(worker *Worker) {
 	a.Unlock()
 }
 
-type command struct {
-	ID string
-	Data Keyed
 
-}
-
-type response struct {
-	Data Keyed
-	ResponseCode int
-}
-
-type commandID struct {
-	ID string
-}
-
-type commandData struct {
-	Data Keyed
-}
 
 type Host struct {
 	sync.Mutex
@@ -235,9 +229,7 @@ type Host struct {
 	c Connection
 }
 
-type beginMessage struct {
-	Maps []string
-}
+
 
 func NewHost(c Connection) *Host {
 	return &Host{
@@ -256,8 +248,8 @@ func (h *Host) Register(maps ...NetworkMapper) {
 }
 
 func (h *Host) Start() error {
-	dat, err := json.Marshal(&beginMessage{
-		Maps: h.idlist,
+	dat, err := proto.Marshal(&Begin{
+		Id: h.idlist,
 	})
 	if err != nil {
 		return err
@@ -274,21 +266,27 @@ func (h *Host) Start() error {
 				fmt.Println("Error receiving job data", err)
 
 			}
-			id := new(commandID)
-			json.Unmarshal(dat, id)
-			mapper, ok := h.maps[id.ID]
+			id := new(Command)
+			err = proto.Unmarshal(dat, id)
+			if err != nil {
+				fmt.Println("ripskies")
+			}
+			mapper, ok := h.maps[id.CommandId]
 			if !ok {
 				return
 			}
-			indata := &commandData{Data:mapper.NewIn()}
-			json.Unmarshal(dat, indata)
+			indata, err := mapper.InEncoder().UnMarshal(id.Data)
+			if err != nil {
+				fmt.Println("ripskies2")
+			}
 			outchan := make(chan Keyed, 100)
 			go func() {
 				for x:= range outchan {
 					fmt.Println("Starting send")
-					respData, err := json.Marshal(&response{
-						ResponseCode:moreData,
-						Data:x,
+					dataBytes, err := mapper.OutEncoder().Marshal(x)
+					respData, err := proto.Marshal(&Response{
+						Response:Response_DATA,
+						Data:dataBytes,
 					})
 					if err != nil {
 						fmt.Println(err)
@@ -302,9 +300,8 @@ func (h *Host) Start() error {
 					}
 					fmt.Println("Sended")
 				}
-				respData, _ := json.Marshal(&response{
-					ResponseCode:done,
-					Data: mapper.NewOut(),
+				respData, _ := proto.Marshal(&Response{
+					Response: Response_DONE,
 				})
 				fmt.Println("Sending Done With Job", string(respData))
 				err := h.c.Send(respData)
@@ -314,7 +311,7 @@ func (h *Host) Start() error {
 				}
 				fmt.Println("Finished Sending Done")
 			}()
-			mapper.Do(indata.Data, outchan)
+			mapper.Do(indata, outchan)
 			close(outchan)
 		}
 	}()

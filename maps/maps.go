@@ -16,8 +16,8 @@ type Mapper interface {
 type NetworkMapper interface {
 	Mapper
 	ID() string
-	NewIn() Keyed // Empty struct for demarshalling
-	NewOut() Keyed
+	InEncoder() Encoder // Empty struct for demarshalling
+	OutEncoder() Encoder
 }
 
 type PrintMapper struct {
