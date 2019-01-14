@@ -150,6 +150,7 @@ func (w *WorkerPool) AddWorker(c Connection) {
 		begin := &Begin{}
 		err = proto.Unmarshal(dat, begin)
 		if err != nil {
+			fmt.Println("error adding worker", err)
 			return
 		}
 		worker := &Worker{

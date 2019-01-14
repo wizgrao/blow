@@ -3,7 +3,7 @@
 		<meta charset="utf-8">
         <script src="wasm_exec.js"></script>
 		<script>
-            var socket = new WebSocket("ws://localhost:8090/sock");
+            const socket = new WebSocket("ws://localhost:8090/sock");
             const go = new Go();
             socket.onopen = function(event) {
                 WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
@@ -12,5 +12,5 @@
             }
 		</script>
 	</head>
-	<body><div id="asdf"></div><img id="imageid" src=""></body>
+	<body><div id="asdf"></div><img id="imageid" src="">hi</body>
 </html>
