@@ -7,7 +7,7 @@ We tackle a popular problem, fizzbuzz! Fizzbuzz, if you're not acquainted with t
 This is a good sample problem to tackle since essentially we are mapping numbers to their phrase independantly, so it makes sense to distribute this problem to worker computers. All of the code can be found in [The fizzbuzz folder](cmd/fizzbuzz)
 
 ### Data Types
-Our data types have to implement the Keyed interface, meaning that they must have a Key() function that returns an int which should be some sort of hash. Our map would go from integers to phrases, but the output struct should also contain the number for which the phrase corresponds to. So, we have a FizzyInput struct which just contains an Int val, and a FizzBuzz struct that contains the int val and the phrase as well. These are defined in the [protobuf file](cmd/fizzbuzz/fizz.proto) and implemented in [the fizzbuzz.go file](cmd/fizzbuzz/fizzbuzz.go).
+Our data types have to implement the Keyed interface, meaning that they must have a `Key()` function that returns an int which should be some sort of hash. Our map would go from integers to phrases, but the output struct should also contain the number for which the phrase corresponds to. So, we have a FizzyInput struct which just contains an Int val, and a FizzBuzz struct that contains the int val and the phrase as well. These are defined in the [protobuf file](cmd/fizzbuzz/fizz.proto) and implemented in [the fizzbuzz.go file](cmd/fizzbuzz/fizzbuzz.go).
 ```golang
 func (f *FizzyInput) Key() int {
 	return int(f.Val)
@@ -17,7 +17,7 @@ func (f *FizzBuzz) Key() int {
 	return int(f.Number)
 }
 ```
-In order to send these over a channel, we want to define how to Marshal and UnMarshal these values. We do this by implementing the maps.Encoder interface
+In order to send these over a channel, we want to define how to Marshal and UnMarshal these values. We do this by implementing the `maps.Encoder` interface
 ```golang
 type FizzyInputMarshaller struct {
 }
@@ -43,10 +43,10 @@ func (*FizzBuzzMarshaller) UnMarshal(b []byte) (maps.Keyed, error) {
 	return o, err
 }
 ```
-We use protocol buffers here since they are very fast, but we could use any encoding scheme we want here, such as json.
+We use protocol buffers here since they are very fast, but we could use any encoding scheme we want here, such as `json`.
 
 ### Data Source
-We want to implement the maps.Source interface. For this, we just want to output a bunch of numbers we want to find the associated phrase to. 
+We want to implement the `maps.Source` interface. For this, we just output the numbers we want to find the associated phrase to. 
 ```golang
 type FizzGenerator int
 
@@ -57,7 +57,7 @@ func (FizzGenerator) Do(c chan <- maps.Keyed) {
 }
 ```
 ### Map
-Now we implement the map itself, which needs the Do method, an ID for the map itself, and functions that return an encoder for its in values, and an encoder for its out values.
+Now we implement the map itself, which needs the `Do` method, an `ID` for the map itself, and functions that return an encoder for its in values, and an encoder for its out values.
 ```golang
 type FizzMapper int
 
@@ -149,6 +149,6 @@ func main() {
 	fmt.Print(http.ListenAndServe(":8090", nil))
 }
 ```
-Run the server and open a browser to localhost:8090 and you'll have created your distributed app!
+Run the server, open a browser to `localhost:8090` and you'll have your own distributed fizzbuzz app!
 
 
