@@ -1,0 +1,21 @@
+syntax = "proto3";
+package maps;
+
+message Begin {
+    repeated string id = 1;
+}
+
+message Command {
+    string command_id = 1;
+    bytes data = 2;
+}
+
+message Response {
+    enum ResponseType {
+        ERROR = 0;
+        DATA = 1;
+        DONE = 2;
+    }
+    ResponseType response = 1;
+    bytes data = 2;
+}

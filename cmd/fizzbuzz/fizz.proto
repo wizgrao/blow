@@ -1,0 +1,11 @@
+syntax = "proto3";
+package fizzbuzz;
+
+message FizzyInput {
+    int32 Val = 1;
+}
+
+message FizzBuzz {
+    int32 Number = 1;
+    string Word = 2;
+}
